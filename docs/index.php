@@ -37,43 +37,38 @@
         }
     }
 
-    // [POST] write value TODO update logic
+    // [POST] write value
     else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $code = $_POST['code'] ?? null;
-        $score = $_POST['score'] ?? null;
-        $secret = $_POST['secret'] ?? null;
-        $stime = $_POST['screen_time'] ?? 0;
-
-        $board = $_POST['board'] ?? '<NOTFOUND>';
-        $cfg = $config[$board] ?? null;
-        $board_secret = ($cfg === null) ? null : $cfg['secret'];
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        $value = $data['value'] ?? null;
+        $secret = $data['secret'] ?? null;
+        $name = $data['name'] ?? '<NOTFOUND>';
+        $cfg = $config[$name] ?? null;
+        $cfg_secret = ($cfg === null) ? null : $cfg['secret'];
 
         if ($cfg === null) {
-          $resp['message'] = 'board not found';
+          $resp['message'] = 'name not found';
         }
-        else if (($code === null) || ($score === null) || ($secret === null)) {
+        else if (($value === null) || ($secret === null)) {
           $resp['message'] = 'invalid input';
         }
-        else if ($secret != $board_secret) {
+        else if ($secret != $cfg_secret) {
           $resp['message'] = 'invalid secret';
         }
         else {
-            // find code
-            $stmt = $conn->prepare("SELECT `plays`, `score`, `hi_score`, `screen_time` FROM `scores` WHERE `board` = ? AND `code` = ? LIMIT 1;");
-            $stmt->execute([ $board, $code ]);
+            // find by name
+            $stmt = $conn->prepare("SELECT `value` FROM `storage` WHERE `name` = ? LIMIT 1;");
+            $stmt->execute([ $name ]);
             $row = $stmt->fetch();
 
-            if ($row === false) { // add new code
-              $stmt = $conn->prepare("INSERT INTO `scores` (`board`, `code`, `plays`, `score`, `hi_score`, `screen_time`) VALUES (?, ?, ?, ?, ?, ?);");
-              $stmt->execute([ $board, $code, 1, $score, $score, $stime ]);
+            if ($row === false) { // add new value
+              $stmt = $conn->prepare("INSERT INTO `storage` (`name`, `value`) VALUES (?, ?);");
+              $stmt->execute([ $name, json_encode($value) ]);
             }
-            else { // update existing code
-              $plays = $row['plays'] + 1;
-              $new_score = $row['score'] + $score;
-              $hi_score = $score > $row['hi_score'] ? $score : $row['hi_score'];
-              $new_stime = $row['screen_time'] + $stime;
-              $stmt = $conn->prepare("UPDATE `scores` SET `plays` = ?, `score` = ?, `hi_score` = ?, `screen_time` = ?, `updated_at` = CURRENT_TIMESTAMP WHERE `board` = ? AND `code` = ?;");
-              $stmt->execute([ $plays, $new_score, $hi_score, $new_stime, $board, $code ]);
+            else { // replace existing value
+              $stmt = $conn->prepare("UPDATE `storage` SET `value` = ?, `updated_at` = CURRENT_TIMESTAMP WHERE `name` = ?;");
+              $stmt->execute([ json_encode($value), $name ]);
             }
             // stamp success
             $resp['success'] = true;
