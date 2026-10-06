@@ -31,8 +31,24 @@
           }
           else {
             $v = $row['value'];
-            $resp['data'] = ($v !== null) ? json_decode($v) : null;
-            $resp['success'] = true;
+            $data = ($v !== null) ? json_decode($v) : null;
+            $key = is_string($_GET['key'] ?? null) ? $_GET['key'] : '';
+
+            if ($key === '') { // whole value
+              $resp['data'] = $data;
+              $resp['success'] = true;
+            }
+            else if (is_object($data) && property_exists($data, $key)) { // object property
+              $resp['data'] = $data->$key;
+              $resp['success'] = true;
+            }
+            else if (is_array($data) && ctype_digit($key) && array_key_exists((int)$key, $data)) { // array index
+              $resp['data'] = $data[(int)$key];
+              $resp['success'] = true;
+            }
+            else {
+              $resp['message'] = 'key not found';
+            }
           }
         }
     }

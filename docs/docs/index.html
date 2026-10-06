@@ -140,13 +140,14 @@ curl 'https://your.api/endpoint?name=tmp'
 <p class="note">The HTTP status is always <code>200</code>, including for errors. Check <code>success</code> and <code>message</code> to see the result.</p>
 
 <h2 id="read">GET: read value</h2>
-<div class="endpoint"><span class="method get">GET</span> https://your.api/endpoint?name=<i>{name}</i></div>
+<div class="endpoint"><span class="method get">GET</span> https://your.api/endpoint?name=<i>{name}</i>[&amp;key=<i>{key}</i>]</div>
 
 <h3>Query parameters</h3>
 <div class="table-wrap">
 <table>
   <tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr>
   <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Key to read</td></tr>
+  <tr><td><code>key</code></td><td>string</td><td>no</td><td>Return only this top-level property of the value (or this index, if the value is an array). This makes the response smaller.</td></tr>
 </table>
 </div>
 
@@ -166,12 +167,15 @@ curl 'https://your.api/endpoint?name=tmp'
   <tr><th><code>message</code></th><th>Cause</th></tr>
   <tr><td><code>name not found</code></td><td><code>name</code> is missing or not registered on the server</td></tr>
   <tr><td><code>data not found</code></td><td>The name is registered but nothing has been written to it yet</td></tr>
+  <tr><td><code>key not found</code></td><td><code>key</code> is given but the value has no such property or index</td></tr>
 </table>
 </div>
 
 <h3>Examples</h3>
 <p>curl</p>
 <pre><code>curl 'https://your.api/endpoint?name=tmp'</code></pre>
+<p>curl, one key only (returns <code>"data": { "name": "Black", "code": "B" }</code>)</p>
+<pre><code>curl 'https://your.api/endpoint?name=tmp&amp;key=0'</code></pre>
 <p>fetch</p>
 <pre><code>const resp = await fetch('https://your.api/endpoint?name=tmp').then(r =&gt; r.json());
 console.log(resp.data);</code></pre>
@@ -255,6 +259,8 @@ console.log(resp.data);</code></pre>
   <input id="base" type="url">
   <label for="name">name</label>
   <input id="name" value="tmp">
+  <label for="key">key (read only, optional)</label>
+  <input id="key">
   <label for="secret">secret (write only)</label>
   <input id="secret" value="1234">
   <label for="value">value (JSON, write only)</label>
@@ -305,7 +311,11 @@ console.log(resp.data);</code></pre>
     }
   }
 
-  $('btn-read').onclick = () => send({}, { name: $('name').value });
+  $('btn-read').onclick = () => {
+    const query = { name: $('name').value };
+    if ($('key').value) query.key = $('key').value;
+    send({}, query);
+  };
 
   $('btn-write').onclick = () => {
     let value;

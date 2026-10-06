@@ -44,7 +44,7 @@ The API is `docs/index.php`. Full API documentation is in `docs/docs/index.html`
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `GET`  | query `name` | Read the value stored under `name` |
+| `GET`  | query `name`, optional `key` | Read the value stored under `name`; with `key`, return only that top-level property (or array index) |
 | `POST` | JSON body `{ name, secret, value }` | Create or **fully replace** the value |
 
 Every response has this shape:
@@ -59,6 +59,7 @@ The HTTP status is always `200`. Check `success` and `message` to see the result
 |-----------|-------|
 | `name not found` | `name` is missing or not in `config.php` |
 | `data not found` | GET: the name is registered but nothing has been written yet |
+| `key not found` | GET: `key` is given but the value has no such property or index |
 | `invalid input` | POST: `value` or `secret` is missing or `null` |
 | `invalid secret` | POST: `secret` doesn't match `config.php` |
 
@@ -91,7 +92,28 @@ Response
 }
 ```
 
-### 2. Write
+### 2. Read one key
+
+Pass `key` to get only part of the value. This makes the response smaller. For an object, `key` is a property name; for an array, it is an index.
+
+Request
+```js
+$.getJSON('https://your.api/endpoint?name=tmp&key=0', resp => console.log(resp))
+```
+
+Response
+```json
+{
+    "success": true,
+    "message": null,
+    "data": {
+        "name": "Black",
+        "code": "B"
+    }
+}
+```
+
+### 3. Write
 
 Request
 ```js

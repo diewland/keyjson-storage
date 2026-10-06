@@ -28,13 +28,13 @@ Update credentials in `docs/db.php` to match the local MySQL.
 
 `index.php` includes `config.php` and `db.php`, then branches on `REQUEST_METHOD`:
 
-- **GET `?name=`** — returns `data` (decoded JSON). No secret required: reads are public.
+- **GET `?name=[&key=]`** — returns `data` (decoded JSON). No secret required: reads are public. Optional `key` returns only that top-level property (or array index) to shrink the response; an empty `key` means the whole value.
 - **POST JSON `{name, secret, value}`** — validates secret against `$config[name]['secret']`, then INSERTs or fully replaces `value` (sets `updated_at`).
 
 Key points that span files:
 
 - A name must exist in `docs/config.php` to be readable or writable; the DB row is created on first POST. A registered name with no row yields `data not found`.
-- All responses are HTTP 200 with envelope `{success, message, data?}`; errors are signalled only via `message` (`name not found`, `data not found`, `invalid input`, `invalid secret`).
+- All responses are HTTP 200 with envelope `{success, message, data?}`; errors are signalled only via `message` (`name not found`, `data not found`, `key not found`, `invalid input`, `invalid secret`).
 - CORS is `*` for GET/POST/OPTIONS.
 - Timezone is set to `Asia/Bangkok` in `db.php`.
 
